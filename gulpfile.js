@@ -14,7 +14,8 @@ var gulp = require('gulp'),
     revCollector = require('gulp-rev-collector'),
     gulpif = require('gulp-if'),
     changed = require('gulp-changed'),
-    debug = require('gulp-debug');
+    debug = require('gulp-debug'),
+    jsonfile = require('jsonfile');
 
 // 任务处理的文件路径配置
 var src = {
@@ -287,6 +288,33 @@ gulp.task('pc_dev', function(){
 
 });
 
+/***************** 移动待发布文件到trunk ***********************/
+
+var file = './file.json';
+gulp.task('move', function() {
+    jsonfile.readFile(file, function(err, obj){
+        console.log('err:', err);
+        for(var i = 0; i< obj.length; i++){
+
+            var srcFile = obj[i];
+            console.log('dir:', srcFile);
+            
+            if(srcFile.indexOf('static_guojiang_tv') != -1){
+                gulp.src(srcFile, {base: '../'})    
+                    .pipe(debug('file:',srcFile))
+                    .pipe(gulp.dest( fs.realpathSync('../../trunk/static') ));
+            }else{
+                gulp.src(srcFile, {base: '../../'})    
+                    .pipe(debug('file:',srcFile))
+                    .pipe(gulp.dest( fs.realpathSync('../../trunk') ));
+            }
+            
+        }
+        
+    })  
+
+
+});
 
 
 //使用connect启动一个Web服务器
