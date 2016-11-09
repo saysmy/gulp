@@ -20,6 +20,7 @@ gulp release
 css, js ,image 压缩  
 less编译  
 版本控制
+copy文件到指定目录
 
 ####遇到的问题
 watch莫名其妙的中断退出（非less等编译问题），版本更新操作文件遇到权限问题被拒绝，编译文件时间过长（一个less文件达30s）：
