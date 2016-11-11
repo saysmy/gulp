@@ -3,7 +3,6 @@ var gulp = require('gulp'),
     minifyCss = require('gulp-minify-css'),
     uglify = require('gulp-uglify'),
     imagemin = require('gulp-imagemin'),
-    pngquant = require('imagemin-pngquant'),
     less = require('gulp-less'),
     plumber = require('gulp-plumber'), // less报错时不退出watch
     connect = require('gulp-connect'),
@@ -31,8 +30,8 @@ var src = {
     },
     dest = {
         jscss: [
-            fs.realpathSync('../dist/mobile/js') + '/**/*.js',
-            fs.realpathSync('../dist/mobile/css') + '/**/*.css'
+            fs.realpathSync('../mobile/js') + '/**/*.js',
+            fs.realpathSync('../mobile/css') + '/**/*.css'
         ]
     },
     pc_src = {
@@ -54,12 +53,12 @@ var src = {
     },
     pc_dest = {
         jscss: [
-            fs.realpathSync('../dist/pc/js') + '/**/*.js',
-            fs.realpathSync('../dist/pc/css') + '/**/*.css'
+            fs.realpathSync('../pc/v3/js') + '/**/*.js',
+            fs.realpathSync('../pc/v3/css') + '/**/*.css'
         ]
     },
-    output = '../dist/mobile',
-    pc_output = '../dist/pc';
+    output = '../mobile',
+    pc_output = '../pc/v3';
 
 var isRelease = false ;
 
@@ -101,14 +100,11 @@ gulp.task('images', function(){
 
     return gulp.src(src.img)
         .pipe(changed(output + '/img'))
-        .pipe( gulpif(
+/*        .pipe( gulpif(
             isRelease, imagemin({
-                progressive: true,
-                svgoPlugins: [{removeViewBox: false}],
-                use: [pngquant()],
-                optimizationLevel: 2
+                type: [pngquant()]
             })
-        ))
+        ))*/
         .pipe(rev())
         .pipe(gulp.dest(output + '/img'))
         .pipe(rev.manifest())
@@ -122,17 +118,17 @@ gulp.task('rev', function() {
         }) )      
         .pipe(gulp.dest( fs.realpathSync('../../videochat/web/protected/modules/mobile/views/') ));
 
-    gulp.src(['./rev/mobile/img/*.json', '../dist/mobile/css/*' ])  
+    gulp.src(['./rev/mobile/img/*.json', '../mobile/css/*' ])  
         .pipe( revCollector({
             replaceReved: true
         }) )   
-        .pipe(gulp.dest( fs.realpathSync('../dist/mobile/css/') ));
+        .pipe(gulp.dest( fs.realpathSync('../mobile/css/') ));
 
-    gulp.src(['./rev/mobile/img/*.json', '../dist/mobile/js/*' ])  
+    gulp.src(['./rev/mobile/img/*.json', '../mobile/js/*' ])  
         .pipe( revCollector({
             replaceReved: true
         }) )   
-        .pipe(gulp.dest( fs.realpathSync('../dist/mobile/js/') ));     
+        .pipe(gulp.dest( fs.realpathSync('../mobile/js/') ));     
 });
 
 
@@ -222,14 +218,6 @@ gulp.task('pc_images', function(){
 
     return gulp.src(pc_src.img)
         .pipe(changed(pc_output + '/img'))
-        .pipe( gulpif(
-            isRelease, imagemin({
-                progressive: true,
-                svgoPlugins: [{removeViewBox: false}],
-                use: [pngquant()],
-                optimizationLevel: 2
-            })
-        ))
         .pipe(rev())
         .pipe(gulp.dest(pc_output + '/img'))
         .pipe(rev.manifest())
@@ -243,17 +231,17 @@ gulp.task('pc_rev', function() {
         }) )      
         .pipe(gulp.dest( fs.realpathSync('../../videochat/web/protected/views/') ));
 
-    gulp.src(['./rev/pc/img/*.json', '../dist/pc/css/*' ])  
+    gulp.src(['./rev/pc/img/*.json', '../pc/v3/css/*' ])  
         .pipe( revCollector({
             replaceReved: true
         }) )   
-        .pipe(gulp.dest( fs.realpathSync('../dist/pc/css/') ));
+        .pipe(gulp.dest( fs.realpathSync('../pc/v3/css/') ));
 
-    gulp.src(['./rev/pc/img/*.json', '../dist/pc/js/*' ])  
+    gulp.src(['./rev/pc/img/*.json', '../pc/v3/js/*' ])  
         .pipe( revCollector({
             replaceReved: true
         }) )   
-        .pipe(gulp.dest( fs.realpathSync('../dist/pc/js/') ));     
+        .pipe(gulp.dest( fs.realpathSync('../pc/v3/js/') ));     
 });
 
 /* 测试以及线上环境 */
@@ -266,10 +254,9 @@ gulp.task('pc_release', ['pc_clean'], function() {
 });
 
 /* 本地开发环境 */
-gulp.task('pc_dev', function(){
+gulp.task('pc_dev', ['pc_clean'], function(){
 
     return runSequence(
-            'pc_clean',
             ['pc_images','pc_less','pc_css', 'pc_scripts'], 
             function(){
                 //watch监听需要监听路径，不能监听具体后缀名文件，所以此处用cssall
@@ -299,6 +286,10 @@ gulp.task('move', function() {
             var srcFile = obj[i];
             console.log('dir:', srcFile);
             
+            if(srcFile.indexOf('.') == -1){
+                srcFile += '/**' ;
+            }
+
             if(srcFile.indexOf('static_guojiang_tv') != -1){
                 gulp.src(srcFile, {base: '../'})    
                     .pipe(debug('file:',srcFile))
