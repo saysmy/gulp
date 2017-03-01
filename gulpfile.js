@@ -1,6 +1,6 @@
 //引入插件
 var gulp = require('gulp'),
-    minifyCss = require('gulp-minify-css'),
+    cleanCss = require('gulp-clean-css'),
     uglify = require('gulp-uglify'),
     imagemin = require('gulp-imagemin'),
     less = require('gulp-less'),
@@ -13,8 +13,7 @@ var gulp = require('gulp'),
     revCollector = require('gulp-rev-collector'),
     gulpif = require('gulp-if'),
     changed = require('gulp-changed'),
-    debug = require('gulp-debug'),
-    jsonfile = require('jsonfile');
+    debug = require('gulp-debug');
 
 // 任务处理的文件路径配置
 var src = {
@@ -22,11 +21,12 @@ var src = {
             fs.realpathSync('../src/mobile/js') + '/**/*.js'
         ],
         css: [
-            fs.realpathSync('../src/mobile/css') + '/**'
+            fs.realpathSync('../src/mobile/css') + '/**/*.less'
         ],
         img: [
             '../src/mobile/img/**'
-        ]
+        ],
+        base: '../src/mobile/'
     },
     dest = {
         jscss: [
@@ -49,7 +49,8 @@ var src = {
         ],
         img: [
             '../src/pc/img/**'
-        ]
+        ],
+        base: '../src/pc/'
     },
     pc_dest = {
         jscss: [
@@ -70,43 +71,39 @@ gulp.task('clean', function(){
 })
 
 gulp.task('scripts', function(){
-    return gulp.src(src.js)
-        .pipe(changed(output + '/js'))
+    return gulp.src(src.js, {base: src.base })
+        .pipe( gulpif(!isRelease, changed(output) ) )
         //.pipe(sourcemaps.init())
         .pipe( gulpif(isRelease, uglify()) )
         .on('error', errorHandler)
         .pipe( gulpif(isRelease, rev() ) )
+        .pipe(debug({title: 'js:'}))
         //.pipe(sourcemaps.write('./maps'))
-        .pipe(gulp.dest(output + '/js'))
+        .pipe(gulp.dest(output))
         .pipe( gulpif(isRelease, rev.manifest() ) )
         .pipe( gulpif(isRelease, gulp.dest('./rev/mobile/js/') ) );
 });
 
 gulp.task('less', function(){
 
-    return gulp.src(src.css)
-        .pipe(changed(output + '/css/', {extension: '.css'}))
+    return gulp.src(src.css, {base: src.base })
+        .pipe( gulpif(!isRelease, changed(output, {extension: '.css'}) ) )
         .pipe(less()).on('error', errorHandler)
         .pipe(plumber())
-        .pipe( gulpif(isRelease, minifyCss()) )
+        .pipe( gulpif(isRelease, cleanCss()) )
         .pipe( gulpif(isRelease, rev() ) )
         .pipe(debug({title: 'css:'}))
-        .pipe(gulp.dest(output + '/css'))
+        .pipe(gulp.dest(output))
         .pipe( gulpif(isRelease, rev.manifest() ) )
         .pipe( gulpif(isRelease, gulp.dest('./rev/mobile/css/') ) );
 });
 
 gulp.task('images', function(){
 
-    return gulp.src(src.img)
-        .pipe(changed(output + '/img'))
-/*        .pipe( gulpif(
-            isRelease, imagemin({
-                type: [pngquant()]
-            })
-        ))*/
+    return gulp.src(src.img, {base: src.base })
+        .pipe(gulpif(!isRelease, changed(output)) )
         .pipe(rev())
-        .pipe(gulp.dest(output + '/img'))
+        .pipe(gulp.dest(output))
         .pipe(rev.manifest())
         .pipe(gulp.dest('./rev/mobile/img/'));
 
@@ -133,7 +130,7 @@ gulp.task('rev', function() {
 
 
 /* 测试以及线上环境 */
-gulp.task('release', ['clean'], function() {
+gulp.task('release', function() {
     isRelease = true;
     return runSequence(
             ['images','less', 'scripts'], 
@@ -145,7 +142,6 @@ gulp.task('release', ['clean'], function() {
 gulp.task('dev', function(){
 
     return runSequence(
-            'clean',
             ['images','less', 'scripts'], 
             function(){
 
@@ -177,49 +173,49 @@ gulp.task('pc_clean', function(){
 })
 
 gulp.task('pc_scripts', function(){
-    return gulp.src(pc_src.js)
-        .pipe(changed(pc_output + '/js'))
+    return gulp.src(pc_src.js, {base: pc_src.base })
+        .pipe(gulpif(!isRelease, changed(pc_output) ) )
         .pipe( gulpif(isRelease, uglify()) )
         .on('error', errorHandler)
         .pipe(rev())
         .pipe(debug({title: 'js:'}))
-        .pipe(gulp.dest(pc_output + '/js'))
+        .pipe(gulp.dest(pc_output))
         .pipe(rev.manifest())
         .pipe(gulp.dest('./rev/pc/js/'));
 });
 
 gulp.task('pc_less', function(){
     
-    return gulp.src(pc_src.less)
-        .pipe(changed(pc_output + '/css', {extension: '.css'}))
+    return gulp.src(pc_src.less, {base: pc_src.base })
+        .pipe(gulpif(!isRelease, changed(pc_output , {extension: '.css'}) ) )
         .pipe(plumber())
         .pipe(less()).on('error', errorHandler)
-        .pipe( gulpif(isRelease, minifyCss()) )
+        .pipe( gulpif(isRelease, cleanCss({compatibility: 'ie7'})) )
         .pipe(rev())
         .pipe(debug({title: 'css:'}))
-        .pipe(gulp.dest(pc_output + '/css'))
+        .pipe(gulp.dest(pc_output))
         .pipe(rev.manifest())
         .pipe(gulp.dest('./rev/pc/css/'));
 });
 gulp.task('pc_css', function(){
 
-    return gulp.src(pc_src.css)
-        .pipe(changed(pc_output + '/css', {extension: '.css'}))
+    return gulp.src(pc_src.css, {base: pc_src.base })
+        .pipe( gulpif(!isRelease, changed(pc_output , {extension: '.css'} )) )
         .pipe(plumber())
-        .pipe( gulpif(isRelease, minifyCss()) )
+        .pipe( gulpif(isRelease, cleanCss({compatibility: 'ie7'})) )
         .pipe(rev())
         .pipe(debug({title: 'css:'}))
-        .pipe(gulp.dest(pc_output + '/css'))
+        .pipe(gulp.dest(pc_output))
         .pipe(rev.manifest())
         .pipe(gulp.dest('./rev/pc/css/'));
 });
 
 gulp.task('pc_images', function(){
 
-    return gulp.src(pc_src.img)
-        .pipe(changed(pc_output + '/img'))
+    return gulp.src(pc_src.img, {base: pc_src.base })
+        .pipe(gulpif(!isRelease, changed(pc_output ) ) )
         .pipe(rev())
-        .pipe(gulp.dest(pc_output + '/img'))
+        .pipe(gulp.dest(pc_output))
         .pipe(rev.manifest())
         .pipe(gulp.dest('./rev/pc/img/'));
 
@@ -245,7 +241,7 @@ gulp.task('pc_rev', function() {
 });
 
 /* 测试以及线上环境 */
-gulp.task('pc_release', ['pc_clean'], function() {
+gulp.task('pc_release', function() {
     isRelease = true;
     return runSequence(
             ['pc_images','pc_less','pc_css', 'pc_scripts'], 
@@ -254,7 +250,7 @@ gulp.task('pc_release', ['pc_clean'], function() {
 });
 
 /* 本地开发环境 */
-gulp.task('pc_dev', ['pc_clean'], function(){
+gulp.task('pc_dev', function(){
 
     return runSequence(
             ['pc_images','pc_less','pc_css', 'pc_scripts'], 
@@ -277,10 +273,12 @@ gulp.task('pc_dev', ['pc_clean'], function(){
 
 /***************** 移动待发布文件到trunk ***********************/
 
-var file = './file.json';
+var file = './file.txt';
 gulp.task('move', function() {
-    jsonfile.readFile(file, function(err, obj){
+    fs.readFile(file, function(err, obj){
         console.log('err:', err);
+        var obj = obj.toString().split('\n');
+
         for(var i = 0; i< obj.length; i++){
 
             var srcFile = obj[i];
@@ -305,6 +303,26 @@ gulp.task('move', function() {
     })  
 
 
+});
+
+
+/****************************PC old less2css******************************/
+gulp.task('pc_old', function(){
+
+    return gulp.src('../pc/css/**/*.less')
+        .pipe(less()).on('error', errorHandler)
+        .pipe(plumber())
+        .pipe( gulpif(isOldRelease, cleanCss({compatibility: 'ie7'})) )
+        .pipe(debug({title: 'css:'}))
+        .pipe(gulp.dest('../pc/css'));
+});
+gulp.task('pc_old_dev', function(){
+    isOldRelease = false;
+    gulp.start('pc_old');
+});
+gulp.task('pc_old_release', function(){
+    isOldRelease = true;
+    gulp.start('pc_old');
 });
 
 
